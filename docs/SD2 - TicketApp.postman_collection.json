@@ -1,0 +1,147 @@
+{
+	"info": {
+		"_postman_id": "0993f89c-6dcf-402e-9955-18b5770a9935",
+		"name": "SD2 - TicketApp",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "14147498"
+	},
+	"item": [
+		{
+			"name": "Orders",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/orders",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"orders"
+					],
+					"query": [
+						{
+							"key": "buyerEmail",
+							"value": "asd",
+							"disabled": true
+						},
+						{
+							"key": "eventId",
+							"value": "1",
+							"disabled": true
+						},
+						{
+							"key": "status",
+							"value": "USED",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create order",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"eventId\": 1,\n    \"eventName\": \"Pepe\",\n    \"buyerEmail\": \"dadonefran@gmail.com\",\n    \"buyerName\": \"Francisco\",\n    \"quantity\": 1,\n    \"unitPrice\": 1231\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/orders",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"orders"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update order",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"buyerEmail\": \"dadonefrancisco@gmail.com\",\n    \"buyerName\": \"Francisco Dadone\",\n    \"quantity\": 2,\n    \"status\": \"CONFIRMED\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/orders/1",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"orders",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Cencel order",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"buyerEmail\": \"dadonefrancisco@gmail.com\",\n    \"buyerName\": \"Francisco Dadone\",\n    \"quantity\": 10,\n    \"status\": \"CONFIRMED\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/orders/1",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"orders",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Validate QR",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"buyerEmail\": \"dadonefrancisco@gmail.com\",\n    \"buyerName\": \"Francisco Dadone\",\n    \"quantity\": 10,\n    \"status\": \"CONFIRMED\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/orders/validate/QR-a49a3304-046f-436c-9ddc-c196c201a351",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"orders",
+						"validate",
+						"QR-a49a3304-046f-436c-9ddc-c196c201a351"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

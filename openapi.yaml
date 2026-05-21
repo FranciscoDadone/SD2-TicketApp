@@ -1,0 +1,490 @@
+openapi: 3.0.3
+info:
+  title: TicketApp Orders API
+  version: 1.0.0
+  description: API para gestión de órdenes de tickets
+  contact:
+    name: TicketApp Team
+    email: support@ticketapp.com
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+tags:
+  - name: Orders
+    description: Operaciones para gestión de órdenes
+
+paths:
+  /api/orders:
+    post:
+      tags:
+        - Orders
+      summary: Crear una nueva orden
+      description: Crea una nueva orden de compra de tickets para un evento
+      operationId: createOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderCreateRequest"
+            examples:
+              concierto:
+                summary: Orden para concierto
+                value:
+                  eventId: 101
+                  eventName: "Concierto de Rock 2026"
+                  buyerEmail: "juan.perez@email.com"
+                  buyerName: "Juan Pérez"
+                  quantity: 2
+                  unitPrice: 5000.00
+              deportivo:
+                summary: Orden para evento deportivo
+                value:
+                  eventId: 202
+                  eventName: "Final Copa América 2026"
+                  buyerEmail: "maria.garcia@email.com"
+                  buyerName: "María García"
+                  quantity: 4
+                  unitPrice: 12000.00
+      responses:
+        "201":
+          description: Orden creada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderResponse"
+              example:
+                id: 1
+                eventId: 101
+                eventName: "Concierto de Rock 2026"
+                buyerEmail: "juan.perez@email.com"
+                buyerName: "Juan Pérez"
+                quantity: 2
+                unitPrice: 5000.00
+                totalAmount: 10000.00
+                status: "PENDING"
+                qrCode: "QR-1234567890"
+                createdAt: "2026-03-26T10:30:00"
+                updatedAt: "2026-03-26T10:30:00"
+        "400":
+          description: Datos de la orden inválidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                emailInvalido:
+                  summary: Email inválido
+                  value:
+                    timestamp: "2026-03-26T10:30:00"
+                    status: 400
+                    error: "Bad Request"
+                    message: "Email del comprador inválido"
+                    path: "/api/orders"
+                cantidadInvalida:
+                  summary: Cantidad inválida
+                  value:
+                    timestamp: "2026-03-26T10:30:00"
+                    status: 400
+                    error: "Bad Request"
+                    message: "La cantidad debe ser mayor a 0"
+                    path: "/api/orders"
+        "500":
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    get:
+      tags:
+        - Orders
+      summary: Listar órdenes
+      description: Obtiene una lista de órdenes con filtros opcionales
+      operationId: getOrders
+      parameters:
+        - name: buyerEmail
+          in: query
+          description: Filtrar por email del comprador
+          required: false
+          schema:
+            type: string
+            format: email
+          example: "juan.perez@email.com"
+        - name: eventId
+          in: query
+          description: Filtrar por ID del evento
+          required: false
+          schema:
+            type: integer
+            format: int64
+          example: 101
+        - name: status
+          in: query
+          description: Filtrar por estado de la orden
+          required: false
+          schema:
+            type: string
+            enum: [PENDING, CONFIRMED, CANCELLED, USED]
+          example: "PENDING"
+      responses:
+        "200":
+          description: Lista de órdenes obtenida exitosamente
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OrderResponse"
+              example:
+                - id: 1
+                  eventId: 101
+                  eventName: "Concierto de Rock 2026"
+                  buyerEmail: "juan.perez@email.com"
+                  buyerName: "Juan Pérez"
+                  quantity: 2
+                  unitPrice: 5000.00
+                  totalAmount: 10000.00
+                  status: "CONFIRMED"
+                  qrCode: "QR-1234567890"
+                  createdAt: "2026-03-26T10:30:00"
+                  updatedAt: "2026-03-26T10:30:00"
+        "500":
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/orders/{id}:
+    get:
+      tags:
+        - Orders
+      summary: Obtener orden por ID
+      description: Obtiene los detalles de una orden específica por su ID
+      operationId: getOrderById
+      parameters:
+        - name: id
+          in: path
+          description: ID de la orden
+          required: true
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        "200":
+          description: Orden encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderResponse"
+        "404":
+          description: Orden no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                timestamp: "2026-03-26T10:30:00"
+                status: 404
+                error: "Not Found"
+                message: "Orden con ID 999 no encontrada"
+                path: "/api/orders/999"
+        "500":
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    put:
+      tags:
+        - Orders
+      summary: Actualizar estado de orden
+      description: Actualiza el estado de una orden existente
+      operationId: updateOrder
+      parameters:
+        - name: id
+          in: path
+          description: ID de la orden
+          required: true
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderUpdateRequest"
+            example:
+              status: "CONFIRMED"
+      responses:
+        "200":
+          description: Orden actualizada exitosamente
+        "400":
+          description: Estado de orden inválido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Orden no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Estado de orden conflictivo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                timestamp: "2026-03-26T10:30:00"
+                status: 409
+                error: "Conflict"
+                message: "No se puede cambiar el estado de una orden cancelada"
+                path: "/api/orders/1"
+        "500":
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      tags:
+        - Orders
+      summary: Cancelar orden
+      description: Cancela una orden existente cambiando su estado a CANCELLED
+      operationId: cancelOrder
+      parameters:
+        - name: id
+          in: path
+          description: ID de la orden
+          required: true
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        "200":
+          description: Orden cancelada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderResponse"
+        "404":
+          description: Orden no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: No se puede cancelar la orden en su estado actual
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/orders/validate/{qrCode}:
+    post:
+      tags:
+        - Orders
+      summary: Validar ticket por código QR
+      description: Valida un ticket usando su código QR y marca la orden como USED
+      operationId: validateTicket
+      parameters:
+        - name: qrCode
+          in: path
+          description: Código QR del ticket
+          required: true
+          schema:
+            type: string
+          example: "QR-1234567890"
+      responses:
+        "200":
+          description: Ticket validado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderResponse"
+        "404":
+          description: Ticket no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                timestamp: "2026-03-26T10:30:00"
+                status: 404
+                error: "Not Found"
+                message: "Ticket con QR 'QR-INVALID' no encontrado"
+                path: "/api/orders/validate/QR-INVALID"
+        "409":
+          description: Ticket ya fue usado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                timestamp: "2026-03-26T10:30:00"
+                status: 409
+                error: "Conflict"
+                message: "El ticket ya fue utilizado"
+                path: "/api/orders/validate/QR-1234567890"
+        "500":
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    OrderCreateRequest:
+      type: object
+      required:
+        - eventId
+        - eventName
+        - buyerEmail
+        - buyerName
+        - quantity
+        - unitPrice
+      properties:
+        eventId:
+          type: integer
+          format: int64
+          description: ID del evento
+          example: 101
+        eventName:
+          type: string
+          description: Nombre del evento
+          example: "Concierto de Rock 2026"
+        buyerEmail:
+          type: string
+          format: email
+          description: Email del comprador
+          example: "juan.perez@email.com"
+        buyerName:
+          type: string
+          description: Nombre completo del comprador
+          example: "Juan Pérez"
+        quantity:
+          type: integer
+          description: Cantidad de tickets a comprar
+          minimum: 1
+          example: 2
+        unitPrice:
+          type: number
+          format: decimal
+          description: Precio unitario del ticket
+          minimum: 0
+          example: 5000.00
+
+    OrderUpdateRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [PENDING, CONFIRMED, CANCELLED, USED]
+          description: Nuevo estado de la orden
+          example: "CONFIRMED"
+
+    OrderResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: ID único de la orden
+          example: 1
+        eventId:
+          type: integer
+          format: int64
+          description: ID del evento
+          example: 101
+        eventName:
+          type: string
+          description: Nombre del evento
+          example: "Concierto de Rock 2026"
+        buyerEmail:
+          type: string
+          format: email
+          description: Email del comprador
+          example: "juan.perez@email.com"
+        buyerName:
+          type: string
+          description: Nombre completo del comprador
+          example: "Juan Pérez"
+        quantity:
+          type: integer
+          description: Cantidad de tickets
+          example: 2
+        unitPrice:
+          type: number
+          format: decimal
+          description: Precio unitario del ticket
+          example: 5000.00
+        totalAmount:
+          type: number
+          format: decimal
+          description: Monto total de la orden (quantity * unitPrice)
+          example: 10000.00
+        status:
+          type: string
+          enum: [PENDING, CONFIRMED, CANCELLED, USED]
+          description: Estado actual de la orden
+          example: "PENDING"
+        qrCode:
+          type: string
+          description: Código QR único para validación del ticket
+          example: "QR-1234567890"
+        createdAt:
+          type: string
+          format: date-time
+          description: Fecha y hora de creación de la orden
+          example: "2026-03-26T10:30:00"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Fecha y hora de última actualización
+          example: "2026-03-26T10:30:00"
+
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Fecha y hora del error
+          example: "2026-03-26T10:30:00"
+        status:
+          type: integer
+          description: Código de estado HTTP
+          example: 400
+        error:
+          type: string
+          description: Tipo de error
+          example: "Bad Request"
+        message:
+          type: string
+          description: Mensaje descriptivo del error
+          example: "Email del comprador inválido"
+        path:
+          type: string
+          description: Path del endpoint que generó el error
+          example: "/api/orders"

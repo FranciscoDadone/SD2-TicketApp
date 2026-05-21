@@ -1,0 +1,53 @@
+services:
+  orders-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: orders-service
+    env_file:
+      - .env
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp-credentials.json
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    volumes:
+      - ./logs:/app/logs
+      - ./gcp-credentials.json:/app/gcp-credentials.json:ro
+    networks:
+      - ticketapp-network
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 60s
+
+  mysql:
+    image: mysql:8.0
+    container_name: orders-mysql
+    env_file:
+      - .env
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - ticketapp-network
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 40s
+
+volumes:
+  mysql-data:
+    driver: local
+
+networks:
+  ticketapp-network:
+    driver: bridge

@@ -1,0 +1,51 @@
+# Build output directories
+build/
+target/
+bin/
+out/
+
+# Gradle files (except wrapper)
+.gradle/
+!gradle/wrapper/
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.settings/
+.classpath
+.project
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+docs/
+
+# Test reports
+**/test-results/
+**/reports/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# Docker files
+Dockerfile
+docker-compose.yml
+.dockerignore

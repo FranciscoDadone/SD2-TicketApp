@@ -41,7 +41,7 @@ public class OrderService {
         BigDecimal totalAmount = request.getUnitPrice().multiply(new BigDecimal(request.getQuantity()));
         order.setTotalAmount(totalAmount);
         
-        order.setStatus(OrderStatus.PENDING);
+        order.setStatus(OrderStatus.PENDING_PAYMENT);
         
         order.setQrCode(generateQrCode());
         
@@ -105,17 +105,17 @@ public class OrderService {
         
         if (order.getStatus() == OrderStatus.CONFIRMED || order.getStatus() == OrderStatus.USED) {
             throw new InvalidOrderStateException(
-                    String.format("Cannot cancel order in status %s. Only PENDING orders can be cancelled", 
+                    String.format("Cannot cancel order in status %s. Only PENDING_PAYMENT orders can be cancelled", 
                             order.getStatus()));
         }
         
-        if (order.getStatus() != OrderStatus.PENDING) {
+        if (order.getStatus() != OrderStatus.PENDING_PAYMENT) {
             throw new InvalidOrderStateException(
-                    String.format("Cannot cancel order in status %s. Only PENDING orders can be cancelled", 
+                    String.format("Cannot cancel order in status %s. Only PENDING_PAYMENT orders can be cancelled", 
                             order.getStatus()));
         }
         
-        order.setStatus(OrderStatus.CANCELLED);
+        order.setStatus(OrderStatus.FAILED);
         Order cancelledOrder = orderRepository.save(order);
         
         return mapToResponse(cancelledOrder);
@@ -131,7 +131,7 @@ public class OrderService {
                     "Cannot validate ticket that has already been used");
         }
         
-        if (order.getStatus() == OrderStatus.CANCELLED) {
+        if (order.getStatus() == OrderStatus.FAILED) {
             throw new InvalidOrderStateException(
                     "Cannot validate ticket for a cancelled order");
         }
@@ -183,13 +183,13 @@ public class OrderService {
         boolean isValidTransition = false;
         
         switch (currentStatus) {
-            case PENDING:
-                isValidTransition = (newStatus == OrderStatus.CONFIRMED || newStatus == OrderStatus.CANCELLED);
+            case PENDING_PAYMENT:
+                isValidTransition = (newStatus == OrderStatus.CONFIRMED || newStatus == OrderStatus.FAILED);
                 break;
             case CONFIRMED:
                 isValidTransition = (newStatus == OrderStatus.USED);
                 break;
-            case CANCELLED:
+            case FAILED:
             case USED:
                 isValidTransition = false;
                 break;

@@ -12,6 +12,6 @@ import lombok.NoArgsConstructor;
 @Schema(description = "Datos para actualizar el estado de una orden")
 public class OrderUpdateRequest {
     
-    @Schema(description = "Nuevo estado de la orden", example = "CONFIRMED", allowableValues = {"PENDING", "CONFIRMED", "CANCELLED", "USED"}, requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Nuevo estado de la orden", example = "CONFIRMED", allowableValues = {"PENDING_PAYMENT", "CONFIRMED", "FAILED", "USED"}, requiredMode = Schema.RequiredMode.REQUIRED)
     private OrderStatus status;
 }

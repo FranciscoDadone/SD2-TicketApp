@@ -1,8 +1,8 @@
 package com.TicketApp.orders_service.enums;
 
 public enum OrderStatus {
-    PENDING,
+    PENDING_PAYMENT,
     CONFIRMED,
-    CANCELLED,
+    FAILED,
     USED
 }

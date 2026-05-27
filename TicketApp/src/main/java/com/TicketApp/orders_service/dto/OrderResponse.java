@@ -39,7 +39,7 @@ public class OrderResponse {
     @Schema(description = "Monto total de la orden (quantity * unitPrice)", example = "10000.00")
     private BigDecimal totalAmount;
     
-    @Schema(description = "Estado actual de la orden", example = "PENDING", allowableValues = {"PENDING", "CONFIRMED", "CANCELLED", "USED"})
+    @Schema(description = "Estado actual de la orden", example = "PENDING_PAYMENT", allowableValues = {"PENDING_PAYMENT", "CONFIRMED", "FAILED", "USED"})
     private OrderStatus status;
     
     @Schema(description = "Código QR único para validación del ticket", example = "QR-1234567890")

@@ -64,7 +64,7 @@ paths:
                 quantity: 2
                 unitPrice: 5000.00
                 totalAmount: 10000.00
-                status: "PENDING"
+                status: "PENDING_PAYMENT"
                 qrCode: "QR-1234567890"
                 createdAt: "2026-03-26T10:30:00"
                 updatedAt: "2026-03-26T10:30:00"
@@ -127,8 +127,8 @@ paths:
           required: false
           schema:
             type: string
-            enum: [PENDING, CONFIRMED, CANCELLED, USED]
-          example: "PENDING"
+            enum: [PENDING_PAYMENT, CONFIRMED, FAILED, USED]
+          example: "PENDING_PAYMENT"
       responses:
         "200":
           description: Lista de órdenes obtenida exitosamente
@@ -261,7 +261,7 @@ paths:
       tags:
         - Orders
       summary: Cancelar orden
-      description: Cancela una orden existente cambiando su estado a CANCELLED
+      description: Cancela una orden existente cambiando su estado a FAILED
       operationId: cancelOrder
       parameters:
         - name: id
@@ -400,7 +400,7 @@ components:
       properties:
         status:
           type: string
-          enum: [PENDING, CONFIRMED, CANCELLED, USED]
+          enum: [PENDING_PAYMENT, CONFIRMED, FAILED, USED]
           description: Nuevo estado de la orden
           example: "CONFIRMED"
 
@@ -446,9 +446,9 @@ components:
           example: 10000.00
         status:
           type: string
-          enum: [PENDING, CONFIRMED, CANCELLED, USED]
+          enum: [PENDING_PAYMENT, CONFIRMED, FAILED, USED]
           description: Estado actual de la orden
-          example: "PENDING"
+          example: "PENDING_PAYMENT"
         qrCode:
           type: string
           description: Código QR único para validación del ticket

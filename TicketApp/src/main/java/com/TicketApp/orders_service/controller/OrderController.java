@@ -75,7 +75,7 @@ public class OrderController {
             @RequestParam(required = false) String buyerEmail,
             @Parameter(description = "Filtrar por ID del evento", example = "101")
             @RequestParam(required = false) Long eventId,
-            @Parameter(description = "Filtrar por estado de la orden", example = "PENDING")
+            @Parameter(description = "Filtrar por estado de la orden", example = "PENDING_PAYMENT")
             @RequestParam(required = false) OrderStatus status) {
         
         List<OrderResponse> orders = orderService.getOrders(buyerEmail, eventId, status);
@@ -105,7 +105,7 @@ public class OrderController {
         return ResponseEntity.ok().build();
     }
     
-    @Operation(summary = "Cancelar orden", description = "Cancela una orden existente cambiando su estado a CANCELLED")
+    @Operation(summary = "Cancelar orden", description = "Cancela una orden existente cambiando su estado a FAILED")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Orden cancelada exitosamente",
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = OrderResponse.class))),

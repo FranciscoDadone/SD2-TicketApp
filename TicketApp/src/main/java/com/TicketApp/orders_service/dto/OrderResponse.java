@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @AllArgsConstructor
@@ -15,8 +16,8 @@ import java.time.LocalDateTime;
 @Schema(description = "Respuesta con los datos completos de una orden")
 public class OrderResponse {
     
-    @Schema(description = "ID único de la orden", example = "1")
-    private Long id;
+    @Schema(description = "ID único de la orden", example = "550e8400-e29b-41d4-a716-446655440000")
+    private UUID id;
     
     @Schema(description = "ID del evento", example = "101")
     private Long eventId;

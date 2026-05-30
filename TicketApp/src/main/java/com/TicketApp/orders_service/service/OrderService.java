@@ -56,7 +56,7 @@ public class OrderService {
         return mapToResponse(savedOrder);
     }
     
-    public OrderResponse getOrderById(Long id) {
+    public OrderResponse getOrderById(UUID id) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new OrderNotFoundException(id));
         return mapToResponse(order);
@@ -89,7 +89,7 @@ public class OrderService {
     }
     
     @Transactional
-    public OrderResponse updateOrderStatus(Long id, OrderStatus newStatus) {
+    public OrderResponse updateOrderStatus(UUID id, OrderStatus newStatus) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new OrderNotFoundException(id));
         
@@ -105,7 +105,7 @@ public class OrderService {
     }
     
     @Transactional
-    public OrderResponse cancelOrder(Long id) {
+    public OrderResponse cancelOrder(UUID id) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new OrderNotFoundException(id));
         

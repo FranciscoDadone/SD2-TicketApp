@@ -20,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -56,8 +57,8 @@ public class OrderController {
     })
     @GetMapping("/{id}")
     public ResponseEntity<OrderResponse> getOrderById(
-            @Parameter(description = "ID de la orden", required = true, example = "1")
-            @PathVariable Long id) {
+            @Parameter(description = "ID de la orden", required = true, example = "550e8400-e29b-41d4-a716-446655440000")
+            @PathVariable UUID id) {
         OrderResponse response = orderService.getOrderById(id);
         return ResponseEntity.ok(response);
     }
@@ -96,8 +97,8 @@ public class OrderController {
     })
     @PutMapping("/{id}")
     public ResponseEntity<OrderResponse> updateOrder(
-            @Parameter(description = "ID de la orden", required = true, example = "1")
-            @PathVariable Long id,
+            @Parameter(description = "ID de la orden", required = true, example = "550e8400-e29b-41d4-a716-446655440000")
+            @PathVariable UUID id,
             @RequestBody OrderUpdateRequest request) {
         
         orderService.updateOrderStatus(id, request.getStatus());
@@ -118,8 +119,8 @@ public class OrderController {
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<OrderResponse> cancelOrder(
-            @Parameter(description = "ID de la orden", required = true, example = "1")
-            @PathVariable Long id) {
+            @Parameter(description = "ID de la orden", required = true, example = "550e8400-e29b-41d4-a716-446655440000")
+            @PathVariable UUID id) {
         OrderResponse response = orderService.cancelOrder(id);
         return ResponseEntity.ok(response);
     }

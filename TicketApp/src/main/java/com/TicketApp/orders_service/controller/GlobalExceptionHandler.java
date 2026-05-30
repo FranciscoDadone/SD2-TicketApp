@@ -1,6 +1,7 @@
 package com.TicketApp.orders_service.controller;
 
 import com.TicketApp.orders_service.dto.ErrorResponse;
+import com.TicketApp.orders_service.exception.EventNotFoundException;
 import com.TicketApp.orders_service.exception.InvalidOrderDataException;
 import com.TicketApp.orders_service.exception.InvalidOrderStateException;
 import com.TicketApp.orders_service.exception.OrderNotFoundException;
@@ -26,6 +27,19 @@ public class GlobalExceptionHandler {
             ((ServletWebRequest) request).getRequest().getRequestURI()
         );
         
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+    }
+
+    @ExceptionHandler(EventNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleEventNotFoundException(EventNotFoundException ex, WebRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+            LocalDateTime.now(),
+            HttpStatus.NOT_FOUND.value(),
+            "Not Found",
+            ex.getMessage(),
+            ((ServletWebRequest) request).getRequest().getRequestURI()
+        );
+
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
     }
     

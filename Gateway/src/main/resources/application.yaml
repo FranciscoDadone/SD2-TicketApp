@@ -1,0 +1,22 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI}
+
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: orders-service-route
+              uri: ${ORDER_API_URL}
+              predicates:
+                - Path=/api/orders/**, /api/events/**, /api/admin/**, /internal/**

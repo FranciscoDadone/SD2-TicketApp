@@ -8,7 +8,10 @@ import com.TicketApp.orders_service.exception.InvalidOrderDataException;
 import com.TicketApp.orders_service.exception.InvalidOrderStateException;
 import com.TicketApp.orders_service.exception.OrderNotFoundException;
 import com.TicketApp.orders_service.exception.TicketAlreadyUsedException;
+import com.TicketApp.orders_service.exception.EventNotFoundException;
+import com.TicketApp.orders_service.model.Event;
 import com.TicketApp.orders_service.model.Order;
+import com.TicketApp.orders_service.repository.EventRepository;
 import com.TicketApp.orders_service.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,14 +27,17 @@ import java.util.stream.Collectors;
 public class OrderService {
     
     private final OrderRepository orderRepository;
+    private final EventRepository eventRepository;
     
     @Transactional
     public OrderResponse createOrder(OrderCreateRequest request) {
         validateOrderRequest(request);
         
         // Create order entity
+        Event event = eventRepository.findById(request.getEventId())
+                .orElseThrow(() -> new EventNotFoundException(request.getEventId()));
         Order order = new Order();
-        order.setEventId(request.getEventId());
+        order.setEvent(event);
         order.setEventName(request.getEventName());
         order.setBuyerEmail(request.getBuyerEmail());
         order.setBuyerName(request.getBuyerName());
@@ -70,7 +76,7 @@ public class OrderService {
         if (buyerEmail != null && !buyerEmail.trim().isEmpty()) {
             orders = orderRepository.findByBuyerEmail(buyerEmail);
         } else if (eventId != null) {
-            orders = orderRepository.findByEventId(eventId);
+            orders = orderRepository.findByEvent_Id(eventId);
         } else if (status != null) {
             orders = orderRepository.findByStatus(status);
         } else {
@@ -212,7 +218,7 @@ public class OrderService {
     private OrderResponse mapToResponse(Order order) {
         OrderResponse response = new OrderResponse();
         response.setId(order.getId());
-        response.setEventId(order.getEventId());
+        response.setEventId(order.getEvent().getId());
         response.setEventName(order.getEventName());
         response.setBuyerEmail(order.getBuyerEmail());
         response.setBuyerName(order.getBuyerName());

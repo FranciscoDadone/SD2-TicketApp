@@ -11,7 +11,7 @@ import java.util.Optional;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByBuyerEmail(String email);
-    List<Order> findByEventId(Long eventId);
+    List<Order> findByEvent_Id(Long eventId);
     List<Order> findByStatus(OrderStatus status);
     Optional<Order> findByQrCode(String qrCode);
 }

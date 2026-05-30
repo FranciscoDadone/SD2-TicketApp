@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/internal/orders")
@@ -41,8 +42,8 @@ public class InternalOrderController {
     })
     @PatchMapping("/{id}/status")
     public ResponseEntity<OrderResponse> updateOrderStatus(
-            @Parameter(description = "ID de la orden", required = true, example = "1")
-            @PathVariable Long id,
+            @Parameter(description = "ID de la orden", required = true, example = "550e8400-e29b-41d4-a716-446655440000")
+            @PathVariable UUID id,
             @RequestBody OrderUpdateRequest request) {
         OrderResponse response = orderService.updateOrderStatus(id, request.getStatus());
         return ResponseEntity.ok(response);

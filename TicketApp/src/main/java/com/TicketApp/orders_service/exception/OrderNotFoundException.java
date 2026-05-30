@@ -5,7 +5,7 @@ public class OrderNotFoundException extends RuntimeException {
         super(message);
     }
     
-    public OrderNotFoundException(Long id) {
+    public OrderNotFoundException(java.util.UUID id) {
         super("Order not found with id: " + id);
     }
 }

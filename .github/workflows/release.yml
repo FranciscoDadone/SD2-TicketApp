@@ -7,11 +7,14 @@ on:
 
 env:
   IMAGE_NAME: sebamediza/ticket-app-sd2
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   release:
     name: Version, build, push and deploy
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code

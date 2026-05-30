@@ -17,7 +17,7 @@ import java.util.Collections;
 @Component
 public class GcpOidcAuthFilter implements GlobalFilter, Ordered {
 
-    @Value("${ORDER_API_URL:https://ticket-app-sd2-253296968289.us-central1.run.app}")
+    @Value("${ORDER_API_URL}")
     private String audience;
 
     @Override

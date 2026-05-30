@@ -1,0 +1,45 @@
+# 1. Archivos de compilación y Gradle
+.gradle/
+build/
+out/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# 2. Archivos del IDE (IntelliJ IDEA, Eclipse, etc.)
+.idea/
+*.iml
+*.ipr
+*.iws
+.settings/
+.classpath
+.project
+.factorypath
+
+# 3. Archivos del Sistema Operativo
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# 4. Logs y volcados de memoria
+*.log
+logs/
+*.stackdump
+hs_err_pid*
+replay_pid*
+.attach_pid*
+
+# 5. Seguridad: Credenciales, variables de entorno y llaves (¡CRÍTICO!)
+.env
+.env.local
+*.pem
+*.key
+credentials.json
+secrets/
+
+# 6. Archivos compilados sueltos
+*.class
+*.war
+*.ear
+*.jar
+!**/gradle-wrapper.jar

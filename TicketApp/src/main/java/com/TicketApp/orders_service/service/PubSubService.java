@@ -12,8 +12,9 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 @Service
+@Service
 public class PubSubService {
-    private final String PROJECT_ID = "Sistemas-Distribuidos-II-2026";
+    private final String PROJECT_ID = "sistemas-distribuidos-ii-2026";
     private final String TOPIC_ID = "orders-topic";
 
     public void publishOrderCreated(Order order) {
@@ -21,19 +22,12 @@ public class PubSubService {
         Publisher publisher = null;
         try {
             publisher = Publisher.newBuilder(topicName).build();
-//enviar solo id por ser asincrono
+
+            // Solo enviamos el ID
             Map<String, Object> payload = new HashMap<>();
-            payload.put("orderId", order.getId());
-            payload.put("orderUuid", order.getOrderUuid());
-            payload.put("eventId", order.getEventId());
-            payload.put("eventName", order.getEventName());
-            payload.put("buyerEmail", order.getBuyerEmail());
-            payload.put("buyerName", order.getBuyerName());
-            payload.put("quantity", order.getQuantity());
-            payload.put("totalAmount", order.getTotalAmount());
+            payload.put("orderId", order.getId().toString());
 
             String json = new ObjectMapper().writeValueAsString(payload);
-
             ByteString data = ByteString.copyFromUtf8(json);
             PubsubMessage pubsubMessage = PubsubMessage.newBuilder()
                     .setData(data)

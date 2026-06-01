@@ -28,6 +28,7 @@ public class OrderService {
     
     private final OrderRepository orderRepository;
     private final EventRepository eventRepository;
+    private final PubSubService pubSubService;
     
     @Transactional
     public OrderResponse createOrder(OrderCreateRequest request) {
@@ -52,6 +53,7 @@ public class OrderService {
         order.setQrCode(generateQrCode());
         
         Order savedOrder = orderRepository.save(order);
+        pubSubService.publishOrderCreated(savedOrder);
         
         return mapToResponse(savedOrder);
     }

@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 @Service
-@Service
 public class PubSubService {
     private final String PROJECT_ID = "sistemas-distribuidos-ii-2026";
     private final String TOPIC_ID = "orders-topic";
@@ -37,6 +36,29 @@ public class PubSubService {
 
         } catch (Exception e) {
             throw new RuntimeException("Error publicando en Pub/Sub: " + e.getMessage(), e);
+        } finally {
+            if (publisher != null) {
+                publisher.shutdown();
+            }
+        }
+    }
+
+    public String enviarMensaje(String mensaje) {
+        TopicName topicName = TopicName.of(PROJECT_ID, TOPIC_ID);
+        Publisher publisher = null;
+        try {
+            publisher = Publisher.newBuilder(topicName).build();
+
+            ByteString data = ByteString.copyFromUtf8(mensaje);
+            PubsubMessage pubsubMessage = PubsubMessage.newBuilder()
+                    .setData(data)
+                    .build();
+
+            String messageId = publisher.publish(pubsubMessage).get();
+            return "Mensaje enviado con ID: " + messageId;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error enviando mensaje a Pub/Sub: " + e.getMessage(), e);
         } finally {
             if (publisher != null) {
                 publisher.shutdown();

@@ -1,0 +1,158 @@
+{
+	"info": {
+		"_postman_id": "28e9da3a-29c9-45b8-b671-9b9c0b9f080d",
+		"name": "Auth",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "14147498",
+		"_collection_link": "https://www.postman.com/dark-crescent-602048/workspace/sd2-ticketapp/collection/14147498-28e9da3a-29c9-45b8-b671-9b9c0b9f080d?action=share&source=collection_link&creator=14147498"
+	},
+	"item": [
+		{
+			"name": "Token user",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "grant_type",
+							"value": "password",
+							"type": "text"
+						},
+						{
+							"key": "client_secret",
+							"value": "N6TjC5mYryxkjlQe4MNMDtspbYlgNpnr",
+							"type": "text"
+						},
+						{
+							"key": "client_id",
+							"value": "ticketapp-gateway",
+							"type": "text"
+						},
+						{
+							"key": "username",
+							"value": "ticketapp_user",
+							"type": "text"
+						},
+						{
+							"key": "password",
+							"value": "user123",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{urlKeycloak}}/protocol/openid-connect/token",
+					"host": [
+						"{{urlKeycloak}}"
+					],
+					"path": [
+						"protocol",
+						"openid-connect",
+						"token"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Token admin",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "grant_type",
+							"value": "password",
+							"type": "text"
+						},
+						{
+							"key": "client_secret",
+							"value": "N6TjC5mYryxkjlQe4MNMDtspbYlgNpnr",
+							"type": "text"
+						},
+						{
+							"key": "client_id",
+							"value": "ticketapp-gateway",
+							"type": "text"
+						},
+						{
+							"key": "username",
+							"value": "admin",
+							"type": "text"
+						},
+						{
+							"key": "password",
+							"value": "admin",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{urlKeycloak}}/protocol/openid-connect/token",
+					"host": [
+						"{{urlKeycloak}}"
+					],
+					"path": [
+						"protocol",
+						"openid-connect",
+						"token"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Token seguridad",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "grant_type",
+							"value": "password",
+							"type": "text"
+						},
+						{
+							"key": "client_secret",
+							"value": "N6TjC5mYryxkjlQe4MNMDtspbYlgNpnr",
+							"type": "text"
+						},
+						{
+							"key": "client_id",
+							"value": "ticketapp-gateway",
+							"type": "text"
+						},
+						{
+							"key": "username",
+							"value": "ticketapp_security",
+							"type": "text"
+						},
+						{
+							"key": "password",
+							"value": "security123",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{urlKeycloak}}/protocol/openid-connect/token",
+					"host": [
+						"{{urlKeycloak}}"
+					],
+					"path": [
+						"protocol",
+						"openid-connect",
+						"token"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

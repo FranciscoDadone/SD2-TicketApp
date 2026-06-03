@@ -4,32 +4,45 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+
+import java.util.Collection;
 
 @Component
 public class UserContextFilter implements GlobalFilter, Ordered {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        // Obtenemos el usuario autenticado desde el contexto de seguridad que ya validó tu SecurityConfig
         return exchange.getPrincipal()
                 .filter(principal -> principal instanceof JwtAuthenticationToken)
                 .cast(JwtAuthenticationToken.class)
                 .flatMap(jwtAuth -> {
-                    // Extraemos el email directamente del JWT de Keycloak
-                    String email = jwtAuth.getToken().getClaimAsString("email");
+                    // 1. Obtenemos los roles del usuario que ya extrajo el SecurityConfig
+                    Collection<GrantedAuthority> authorities = jwtAuth.getAuthorities();
 
-                    if (email != null) {
-                        // Inyectamos el nuevo header X-User-Email en la petición
-                        ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
-                                .header("X-User-Email", email)
-                                .build();
+                    // 2. Verificamos si tiene algún rol especial (como admin o seguridad)
+                    boolean isSpecialRole = authorities.stream()
+                            .anyMatch(auth -> auth.getAuthority().equals("ROLE_admin") ||
+                                    auth.getAuthority().equals("ROLE_seguridad"));
 
-                        return chain.filter(exchange.mutate().request(mutatedRequest).build());
+                    // 3. Si NO es un rol especial (es decir, es un usuario normal), inyectamos el email
+                    if (!isSpecialRole) {
+                        String email = jwtAuth.getToken().getClaimAsString("email");
+
+                        if (email != null) {
+                            ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
+                                    .header("X-User-Email", email)
+                                    .build();
+
+                            return chain.filter(exchange.mutate().request(mutatedRequest).build());
+                        }
                     }
+
+                    // Si es admin, seguridad, o no se encontró email, dejamos pasar la petición tal cual
                     return chain.filter(exchange);
                 })
                 .switchIfEmpty(chain.filter(exchange));

@@ -5,6 +5,7 @@ import com.TicketApp.orders_service.dto.OrderCreateRequest;
 import com.TicketApp.orders_service.dto.OrderResponse;
 import com.TicketApp.orders_service.dto.OrderUpdateRequest;
 import com.TicketApp.orders_service.enums.OrderStatus;
+import com.TicketApp.orders_service.exception.InvalidOrderDataException;
 import com.TicketApp.orders_service.service.OrderService;
 import com.TicketApp.orders_service.service.PubSubService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -41,7 +42,16 @@ public class OrderController {
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping
-    public ResponseEntity<OrderResponse> createOrder(@RequestBody OrderCreateRequest request) {
+    public ResponseEntity<OrderResponse> createOrder(
+            @RequestHeader(value = "X-User-Email", required = false) String userEmail,
+            @RequestBody OrderCreateRequest request) {
+        
+        // Validar que el email del JWT esté presente
+        if (userEmail == null || userEmail.trim().isEmpty()) {
+            throw new InvalidOrderDataException("No se pudo obtener el email del usuario autenticado");
+        }
+        
+        request.setBuyerEmail(userEmail);
         OrderResponse response = orderService.createOrder(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -57,9 +67,18 @@ public class OrderController {
     })
     @GetMapping("/{id}")
     public ResponseEntity<OrderResponse> getOrderById(
+            @RequestHeader(value = "X-User-Email", required = false) String userEmail,
             @Parameter(description = "ID de la orden", required = true, example = "550e8400-e29b-41d4-a716-446655440000")
             @PathVariable UUID id) {
         OrderResponse response = orderService.getOrderById(id);
+        
+        // Si se proporciona el header X-User-Email, validar que la orden pertenece a ese usuario
+        if (userEmail != null && !userEmail.trim().isEmpty()) {
+            if (!response.getBuyerEmail().equals(userEmail)) {
+                throw new InvalidOrderDataException("La orden no pertenece al usuario especificado");
+            }
+        }
+        
         return ResponseEntity.ok(response);
     }
     
@@ -72,6 +91,7 @@ public class OrderController {
     })
     @GetMapping
     public ResponseEntity<List<OrderResponse>> getOrders(
+            @RequestHeader(value = "X-User-Email", required = false) String userEmail,
             @Parameter(description = "Filtrar por email del comprador", example = "juan.perez@email.com")
             @RequestParam(required = false) String buyerEmail,
             @Parameter(description = "Filtrar por ID del evento", example = "101")
@@ -79,7 +99,11 @@ public class OrderController {
             @Parameter(description = "Filtrar por estado de la orden", example = "PENDING_PAYMENT")
             @RequestParam(required = false) OrderStatus status) {
         
-        List<OrderResponse> orders = orderService.getOrders(buyerEmail, eventId, status);
+        // Si se proporciona el header X-User-Email, filtrar por ese email
+        // De lo contrario, usar el parámetro buyerEmail (puede ser null para obtener todas)
+        String emailFilter = (userEmail != null && !userEmail.trim().isEmpty()) ? userEmail : buyerEmail;
+        
+        List<OrderResponse> orders = orderService.getOrders(emailFilter, eventId, status);
         return ResponseEntity.ok(orders);
     }
     

@@ -4,6 +4,7 @@ import com.google.cloud.pubsub.v1.Publisher;
 import com.google.protobuf.ByteString;
 import com.google.pubsub.v1.PubsubMessage;
 import com.google.pubsub.v1.TopicName;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import com.TicketApp.orders_service.model.Order;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,11 +14,14 @@ import java.util.concurrent.ExecutionException;
 
 @Service
 public class PubSubService {
-    private final String PROJECT_ID = "sistemas-distribuidos-ii-2026";
-    private final String TOPIC_ID = "orders-topic";
+    @Value("${gcp.project-id}")
+    private String projectId;
+    
+    @Value("${gcp.pubsub.topic-id}")
+    private String topicId;
 
     public void publishOrderCreated(Order order) {
-        TopicName topicName = TopicName.of(PROJECT_ID, TOPIC_ID);
+        TopicName topicName = TopicName.of(projectId, topicId);
         Publisher publisher = null;
         try {
             publisher = Publisher.newBuilder(topicName).build();
@@ -44,7 +48,7 @@ public class PubSubService {
     }
 
     public String enviarMensaje(String mensaje) {
-        TopicName topicName = TopicName.of(PROJECT_ID, TOPIC_ID);
+        TopicName topicName = TopicName.of(projectId, topicId);
         Publisher publisher = null;
         try {
             publisher = Publisher.newBuilder(topicName).build();

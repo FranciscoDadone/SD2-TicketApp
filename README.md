@@ -148,161 +148,125 @@ Una vez levantado el Orders Service:
 
 ### 2.7 Despliegue en la nube (GCP Cloud Run)
 
-Esta guía deja el sistema desplegado con:
+Esta guía usa exclusivamente la interfaz gráfica de Google Cloud Console y deja el sistema desplegado con:
 
-- `orders-service` en Cloud Run (privado)
-- `api-gateway` en Cloud Run (público)
+- Orders Service en Cloud Run (privado)
+- API Gateway en Cloud Run (público)
 - MySQL administrado en Cloud SQL
 - Pub/Sub para eventos de orden
 
-#### 2.7.1 Configuración inicial
+#### 2.7.1 Crear y preparar el proyecto en Google Cloud Console
 
-```bash
-# Variables base
-export PROJECT_ID="tu-proyecto-gcp"
-export REGION="us-central1"
-export DB_INSTANCE="ticketapp-mysql"
-export DB_NAME="ordersdb"
-export DB_USER="orderuser"
-export DB_PASS="orderpass-seguro"
-export TOPIC_ID="orders-topic"
-export KEYCLOAK_ISSUER_URI="https://keycloak.example.com/realms/Final-TP"
+1. Abrir Google Cloud Console y seleccionar o crear un proyecto.
+2. Ir a **APIs y servicios > Biblioteca**.
+3. Habilitar estas APIs:
+  - Cloud Run Admin API
+  - Cloud Build API
+  - Artifact Registry API
+  - Cloud SQL Admin API
+  - Pub/Sub API
+  - Secret Manager API
+4. Definir una región única para todo el despliegue (por ejemplo, `us-central1`).
 
-gcloud config set project "$PROJECT_ID"
+#### 2.7.2 Crear Artifact Registry (repositorio Docker)
 
-# APIs necesarias
-gcloud services enable \
-  run.googleapis.com \
-  cloudbuild.googleapis.com \
-  artifactregistry.googleapis.com \
-  sqladmin.googleapis.com \
-  pubsub.googleapis.com \
-  secretmanager.googleapis.com
-```
+1. Ir a **Artifact Registry > Repositorios > Crear repositorio**.
+2. Configurar:
+  - Nombre: `ticketapp-repo`
+  - Formato: `Docker`
+  - Ubicación: la misma región elegida
+3. Guardar.
 
-#### 2.7.2 Crear Artifact Registry
+#### 2.7.3 Crear Cloud SQL (MySQL)
 
-```bash
-gcloud artifacts repositories create ticketapp-repo \
-  --repository-format=docker \
-  --location="$REGION" \
-  --description="Repositorio Docker para TicketApp"
-```
+1. Ir a **SQL > Crear instancia**.
+2. Elegir **MySQL 8.0**.
+3. Configurar:
+  - ID de instancia: `ticketapp-mysql`
+  - Contraseña de root: definir una segura
+  - Región: la misma región del proyecto
+4. Crear la instancia.
+5. Dentro de la instancia, ir a **Bases de datos > Crear base de datos**:
+  - Nombre: `ordersdb`
+6. Ir a **Usuarios > Agregar cuenta de usuario**:
+  - Usuario: `orderuser`
+  - Contraseña: definir segura
+7. Ir a **Conexiones > Redes autorizadas** y agregar la salida de Cloud Run si corresponde al entorno académico/dev.
+8. Copiar la IP pública de la instancia (se usa como `DB_HOST`).
 
-#### 2.7.3 Crear base MySQL en Cloud SQL
-
-```bash
-gcloud sql instances create "$DB_INSTANCE" \
-  --database-version=MYSQL_8_0 \
-  --tier=db-f1-micro \
-  --region="$REGION"
-
-gcloud sql databases create "$DB_NAME" --instance="$DB_INSTANCE"
-
-gcloud sql users create "$DB_USER" \
-  --instance="$DB_INSTANCE" \
-  --password="$DB_PASS"
-```
-
-Habilitar IP pública (entorno académico/dev) y obtener host de conexión:
-
-```bash
-gcloud sql instances patch "$DB_INSTANCE" --assign-ip
-
-export DB_HOST=$(gcloud sql instances describe "$DB_INSTANCE" --format='value(ipAddresses[0].ipAddress)')
-```
-
-> **Importante:** esta guía usa IP pública para mantener el despliegue reproducible sin cambios de código. Para producción se recomienda Cloud SQL con IP privada + Serverless VPC Connector.
+> Importante: en producción se recomienda conexión privada con Serverless VPC Connector en lugar de IP pública.
 
 #### 2.7.4 Crear topic de Pub/Sub
 
-```bash
-gcloud pubsub topics create "$TOPIC_ID"
-```
+1. Ir a **Pub/Sub > Topics > Crear tema**.
+2. Configurar:
+  - ID del topic: `orders-topic`
+3. Crear.
 
-#### 2.7.5 Crear Service Accounts
+#### 2.7.5 Crear Service Accounts y permisos mínimos
 
-```bash
-gcloud iam service-accounts create sa-orders \
-  --display-name="Orders Service Account"
+1. Ir a **IAM y administración > Cuentas de servicio > Crear cuenta de servicio**.
+2. Crear:
+  - `sa-orders` (Orders Service)
+  - `sa-gateway` (API Gateway)
+3. Asignar roles:
+  - A `sa-orders`: `Pub/Sub Publisher`
+  - A `sa-gateway`: `Cloud Run Invoker`
 
-gcloud iam service-accounts create sa-gateway \
-  --display-name="Gateway Service Account"
-```
+#### 2.7.6 Build y publicación de imágenes desde Cloud Build (UI)
 
-Asignar permisos mínimos:
+Repetir este flujo para ambos servicios (`TicketApp` y `Gateway`):
 
-```bash
-# Orders Service: publicar en Pub/Sub
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:sa-orders@${PROJECT_ID}.iam.gserviceaccount.com" \
-  --role="roles/pubsub.publisher"
+1. Ir a **Cloud Build > Repositories** y conectar el repositorio de GitHub.
+2. Crear un trigger por rama (por ejemplo, `main` o la rama de entrega).
+3. Configurar cada trigger para generar imagen Docker y publicarla en:
+  - `REGION-docker.pkg.dev/PROJECT_ID/ticketapp-repo/orders-service:latest`
+  - `REGION-docker.pkg.dev/PROJECT_ID/ticketapp-repo/api-gateway:latest`
+4. Ejecutar el trigger manualmente para validar que ambas imágenes se publiquen.
 
-# Gateway: invocar Orders Service privado
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:sa-gateway@${PROJECT_ID}.iam.gserviceaccount.com" \
-  --role="roles/run.invoker"
-```
+#### 2.7.7 Deploy de Orders Service en Cloud Run (privado)
 
-#### 2.7.6 Build y deploy de Orders Service
+1. Ir a **Cloud Run > Crear servicio**.
+2. Seleccionar imagen `orders-service:latest` desde Artifact Registry.
+3. Configurar:
+  - Nombre del servicio: `orders-service`
+  - Región: la misma definida antes
+  - Autenticación: **Requerir autenticación** (no público)
+  - Cuenta de servicio en ejecución: `sa-orders`
+4. En **Variables y secretos**, cargar:
+  - `SPRING_DATASOURCE_URL=jdbc:mysql://DB_HOST:3306/ordersdb?useSSL=false&allowPublicKeyRetrieval=true&connectTimeout=60000&socketTimeout=60000`
+  - `SPRING_DATASOURCE_USERNAME=orderuser`
+  - `SPRING_DATASOURCE_PASSWORD=<password definido>`
+  - `GCP_PROJECT_ID=<tu project id>`
+  - `GCP_PUBSUB_TOPIC_ID=orders-topic`
+5. Desplegar y copiar la URL del servicio (`ORDER_API_URL`).
 
-```bash
-cd TicketApp
+#### 2.7.8 Deploy de API Gateway en Cloud Run (público)
 
-gcloud builds submit --tag "$REGION-docker.pkg.dev/$PROJECT_ID/ticketapp-repo/orders-service:latest"
+1. Ir a **Cloud Run > Crear servicio**.
+2. Seleccionar imagen `api-gateway:latest` desde Artifact Registry.
+3. Configurar:
+  - Nombre del servicio: `api-gateway`
+  - Región: la misma definida antes
+  - Autenticación: **Permitir invocaciones no autenticadas**
+  - Cuenta de servicio en ejecución: `sa-gateway`
+4. En **Variables y secretos**, cargar:
+  - `KEYCLOAK_ISSUER_URI=https://keycloak.example.com/realms/Final-TP`
+  - `ORDER_API_URL=<URL copiada del orders-service>`
+5. Desplegar y copiar la URL pública del Gateway.
 
-gcloud run deploy orders-service \
-  --image "$REGION-docker.pkg.dev/$PROJECT_ID/ticketapp-repo/orders-service:latest" \
-  --region "$REGION" \
-  --platform managed \
-  --no-allow-unauthenticated \
-  --service-account "sa-orders@${PROJECT_ID}.iam.gserviceaccount.com" \
-  --set-env-vars "SPRING_DATASOURCE_URL=jdbc:mysql://$DB_HOST:3306/$DB_NAME?useSSL=false&allowPublicKeyRetrieval=true&connectTimeout=60000&socketTimeout=60000,SPRING_DATASOURCE_USERNAME=$DB_USER,SPRING_DATASOURCE_PASSWORD=$DB_PASS,GCP_PROJECT_ID=$PROJECT_ID,GCP_PUBSUB_TOPIC_ID=$TOPIC_ID"
-```
+#### 2.7.9 Verificación post-despliegue en consola
 
-Guardar URL privada del Orders Service:
-
-```bash
-export ORDER_API_URL=$(gcloud run services describe orders-service --region "$REGION" --format='value(status.url)')
-```
-
-#### 2.7.7 Build y deploy de API Gateway
-
-```bash
-cd ../Gateway
-
-gcloud builds submit --tag "$REGION-docker.pkg.dev/$PROJECT_ID/ticketapp-repo/api-gateway:latest"
-
-gcloud run deploy api-gateway \
-  --image "$REGION-docker.pkg.dev/$PROJECT_ID/ticketapp-repo/api-gateway:latest" \
-  --region "$REGION" \
-  --platform managed \
-  --allow-unauthenticated \
-  --service-account "sa-gateway@${PROJECT_ID}.iam.gserviceaccount.com" \
-  --set-env-vars "KEYCLOAK_ISSUER_URI=$KEYCLOAK_ISSUER_URI,ORDER_API_URL=$ORDER_API_URL"
-```
-
-Obtener URL pública del Gateway:
-
-```bash
-export GATEWAY_URL=$(gcloud run services describe api-gateway --region "$REGION" --format='value(status.url)')
-echo "$GATEWAY_URL"
-```
-
-#### 2.7.8 Verificación post-despliegue
-
-```bash
-# Health del Gateway
-curl "$GATEWAY_URL/actuator/health"
-
-# Swagger (si está expuesto por el servicio)
-echo "$GATEWAY_URL/swagger-ui.html"
-```
+1. En **Cloud Run > api-gateway > Métricas/Logs**, confirmar respuestas `2xx` en peticiones válidas.
+2. Verificar que endpoints protegidos sin token respondan `401`.
+3. Ejecutar una compra desde Postman contra la URL del Gateway.
+4. Confirmar en **Cloud SQL** que la orden se persiste.
+5. Confirmar en **Pub/Sub > Topics > orders-topic** que se reciben mensajes.
 
 Checklist recomendado:
 
 1. El Gateway responde en la URL pública de Cloud Run.
-2. Los endpoints protegidos sin token devuelven `401 Unauthorized`.
+2. Orders Service no es accesible públicamente.
 3. Con JWT válido, el Gateway enruta correctamente al Orders Service.
 4. Al crear una orden, se persiste en MySQL y se publica en Pub/Sub.
 

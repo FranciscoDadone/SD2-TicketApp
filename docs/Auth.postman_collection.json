@@ -22,22 +22,22 @@
 						},
 						{
 							"key": "client_secret",
-							"value": "N6TjC5mYryxkjlQe4MNMDtspbYlgNpnr",
+							"value": "{{clientSecret}}",
 							"type": "text"
 						},
 						{
 							"key": "client_id",
-							"value": "ticketapp-gateway",
+							"value": "{{clientId}}",
 							"type": "text"
 						},
 						{
 							"key": "username",
-							"value": "ticketapp_user",
+							"value": "{{userUsername}}",
 							"type": "text"
 						},
 						{
 							"key": "password",
-							"value": "user123",
+							"value": "{{userPassword}}",
 							"type": "text"
 						}
 					]
@@ -71,22 +71,22 @@
 						},
 						{
 							"key": "client_secret",
-							"value": "N6TjC5mYryxkjlQe4MNMDtspbYlgNpnr",
+							"value": "{{clientSecret}}",
 							"type": "text"
 						},
 						{
 							"key": "client_id",
-							"value": "ticketapp-gateway",
+							"value": "{{clientId}}",
 							"type": "text"
 						},
 						{
 							"key": "username",
-							"value": "admin",
+							"value": "{{adminUsername}}",
 							"type": "text"
 						},
 						{
 							"key": "password",
-							"value": "admin",
+							"value": "{{adminPassword}}",
 							"type": "text"
 						}
 					]
@@ -120,22 +120,22 @@
 						},
 						{
 							"key": "client_secret",
-							"value": "N6TjC5mYryxkjlQe4MNMDtspbYlgNpnr",
+							"value": "{{clientSecret}}",
 							"type": "text"
 						},
 						{
 							"key": "client_id",
-							"value": "ticketapp-gateway",
+							"value": "{{clientId}}",
 							"type": "text"
 						},
 						{
 							"key": "username",
-							"value": "ticketapp_security",
+							"value": "{{securityUsername}}",
 							"type": "text"
 						},
 						{
 							"key": "password",
-							"value": "security123",
+							"value": "{{securityPassword}}",
 							"type": "text"
 						}
 					]

@@ -19,35 +19,7 @@ Sistema distribuido para gestión de compra y validación de entradas para event
 
 ### 1.1 Diagrama de componentes y conectores
 
-```mermaid
-graph TD
-    subgraph Internet
-        Client["🖥️ Cliente\n(Browser / App)"]
-        Keycloak["🔑 Keycloak\n(Identity Provider)"]
-    end
-
-    subgraph GCP["Google Cloud Platform"]
-        subgraph GKE_or_Run["Cloud Run / GKE"]
-            Gateway["⚙️ API Gateway\n(Spring Cloud Gateway WebFlux)\n:8080"]
-            OrdersService["📦 Orders Service\n(Spring Boot REST)\n:8080"]
-        end
-
-        PubSub["📨 GCP Pub/Sub\n(orders-topic)"]
-
-        subgraph Data["Datos"]
-            MySQL["🗄️ MySQL 8\n(ordersdb)"]
-        end
-    end
-
-    Client -- "1. Login → JWT" --> Keycloak
-    Client -- "2. HTTP + Bearer JWT" --> Gateway
-    Gateway -- "3. Valida firma JWT\n(JWKS endpoint)" --> Keycloak
-    Gateway -- "4. Inyecta OIDC token\n(Service Account)" --> OrdersService
-    OrdersService -- "5. Persiste orden" --> MySQL
-    OrdersService -- "6. Publica evento\n{orderId}" --> PubSub
-    OrdersService -- "7. Respuesta HTTP" --> Gateway
-    Gateway -- "8. Respuesta HTTP" --> Client
-```
+![Diagrama de Secuencia](docs/Diagrama%20ComponenteConector.png)
 
 > **Nota:** `/internal/**` es bloqueado en el Gateway con `denyAll()`. Ningún cliente externo puede alcanzar directamente los endpoints internos del Orders Service.
 
@@ -174,6 +146,168 @@ Una vez levantado el Orders Service:
 
 ---
 
+### 2.7 Despliegue en la nube (GCP Cloud Run)
+
+Esta guía deja el sistema desplegado con:
+
+- `orders-service` en Cloud Run (privado)
+- `api-gateway` en Cloud Run (público)
+- MySQL administrado en Cloud SQL
+- Pub/Sub para eventos de orden
+
+#### 2.7.1 Configuración inicial
+
+```bash
+# Variables base
+export PROJECT_ID="tu-proyecto-gcp"
+export REGION="us-central1"
+export DB_INSTANCE="ticketapp-mysql"
+export DB_NAME="ordersdb"
+export DB_USER="orderuser"
+export DB_PASS="orderpass-seguro"
+export TOPIC_ID="orders-topic"
+export KEYCLOAK_ISSUER_URI="https://keycloak.example.com/realms/Final-TP"
+
+gcloud config set project "$PROJECT_ID"
+
+# APIs necesarias
+gcloud services enable \
+  run.googleapis.com \
+  cloudbuild.googleapis.com \
+  artifactregistry.googleapis.com \
+  sqladmin.googleapis.com \
+  pubsub.googleapis.com \
+  secretmanager.googleapis.com
+```
+
+#### 2.7.2 Crear Artifact Registry
+
+```bash
+gcloud artifacts repositories create ticketapp-repo \
+  --repository-format=docker \
+  --location="$REGION" \
+  --description="Repositorio Docker para TicketApp"
+```
+
+#### 2.7.3 Crear base MySQL en Cloud SQL
+
+```bash
+gcloud sql instances create "$DB_INSTANCE" \
+  --database-version=MYSQL_8_0 \
+  --tier=db-f1-micro \
+  --region="$REGION"
+
+gcloud sql databases create "$DB_NAME" --instance="$DB_INSTANCE"
+
+gcloud sql users create "$DB_USER" \
+  --instance="$DB_INSTANCE" \
+  --password="$DB_PASS"
+```
+
+Habilitar IP pública (entorno académico/dev) y obtener host de conexión:
+
+```bash
+gcloud sql instances patch "$DB_INSTANCE" --assign-ip
+
+export DB_HOST=$(gcloud sql instances describe "$DB_INSTANCE" --format='value(ipAddresses[0].ipAddress)')
+```
+
+> **Importante:** esta guía usa IP pública para mantener el despliegue reproducible sin cambios de código. Para producción se recomienda Cloud SQL con IP privada + Serverless VPC Connector.
+
+#### 2.7.4 Crear topic de Pub/Sub
+
+```bash
+gcloud pubsub topics create "$TOPIC_ID"
+```
+
+#### 2.7.5 Crear Service Accounts
+
+```bash
+gcloud iam service-accounts create sa-orders \
+  --display-name="Orders Service Account"
+
+gcloud iam service-accounts create sa-gateway \
+  --display-name="Gateway Service Account"
+```
+
+Asignar permisos mínimos:
+
+```bash
+# Orders Service: publicar en Pub/Sub
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:sa-orders@${PROJECT_ID}.iam.gserviceaccount.com" \
+  --role="roles/pubsub.publisher"
+
+# Gateway: invocar Orders Service privado
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:sa-gateway@${PROJECT_ID}.iam.gserviceaccount.com" \
+  --role="roles/run.invoker"
+```
+
+#### 2.7.6 Build y deploy de Orders Service
+
+```bash
+cd TicketApp
+
+gcloud builds submit --tag "$REGION-docker.pkg.dev/$PROJECT_ID/ticketapp-repo/orders-service:latest"
+
+gcloud run deploy orders-service \
+  --image "$REGION-docker.pkg.dev/$PROJECT_ID/ticketapp-repo/orders-service:latest" \
+  --region "$REGION" \
+  --platform managed \
+  --no-allow-unauthenticated \
+  --service-account "sa-orders@${PROJECT_ID}.iam.gserviceaccount.com" \
+  --set-env-vars "SPRING_DATASOURCE_URL=jdbc:mysql://$DB_HOST:3306/$DB_NAME?useSSL=false&allowPublicKeyRetrieval=true&connectTimeout=60000&socketTimeout=60000,SPRING_DATASOURCE_USERNAME=$DB_USER,SPRING_DATASOURCE_PASSWORD=$DB_PASS,GCP_PROJECT_ID=$PROJECT_ID,GCP_PUBSUB_TOPIC_ID=$TOPIC_ID"
+```
+
+Guardar URL privada del Orders Service:
+
+```bash
+export ORDER_API_URL=$(gcloud run services describe orders-service --region "$REGION" --format='value(status.url)')
+```
+
+#### 2.7.7 Build y deploy de API Gateway
+
+```bash
+cd ../Gateway
+
+gcloud builds submit --tag "$REGION-docker.pkg.dev/$PROJECT_ID/ticketapp-repo/api-gateway:latest"
+
+gcloud run deploy api-gateway \
+  --image "$REGION-docker.pkg.dev/$PROJECT_ID/ticketapp-repo/api-gateway:latest" \
+  --region "$REGION" \
+  --platform managed \
+  --allow-unauthenticated \
+  --service-account "sa-gateway@${PROJECT_ID}.iam.gserviceaccount.com" \
+  --set-env-vars "KEYCLOAK_ISSUER_URI=$KEYCLOAK_ISSUER_URI,ORDER_API_URL=$ORDER_API_URL"
+```
+
+Obtener URL pública del Gateway:
+
+```bash
+export GATEWAY_URL=$(gcloud run services describe api-gateway --region "$REGION" --format='value(status.url)')
+echo "$GATEWAY_URL"
+```
+
+#### 2.7.8 Verificación post-despliegue
+
+```bash
+# Health del Gateway
+curl "$GATEWAY_URL/actuator/health"
+
+# Swagger (si está expuesto por el servicio)
+echo "$GATEWAY_URL/swagger-ui.html"
+```
+
+Checklist recomendado:
+
+1. El Gateway responde en la URL pública de Cloud Run.
+2. Los endpoints protegidos sin token devuelven `401 Unauthorized`.
+3. Con JWT válido, el Gateway enruta correctamente al Orders Service.
+4. Al crear una orden, se persiste en MySQL y se publica en Pub/Sub.
+
+---
+
 ## 3. Seguridad
 
 ### 3.1 Modelo de autenticación y autorización
@@ -219,84 +353,11 @@ Cliente → [JWT Keycloak] → Gateway → [OIDC GCP Service Account] → Orders
 
 Esto garantiza que el Orders Service solo acepta peticiones provenientes del Gateway con credenciales de infraestructura verificables. El endpoint `/internal/**` del Orders Service está diseñado para ser consumido únicamente por sistemas backend (no usuarios finales) y está bloqueado a nivel perimetral.
 
----
-
-### 3.2 Estados de orden y transiciones permitidas
-
-```mermaid
-stateDiagram-v2
-    [*] --> PENDING_PAYMENT : createOrder()
-    PENDING_PAYMENT --> CONFIRMED : pago confirmado (Pub/Sub callback)
-    PENDING_PAYMENT --> FAILED : cancelOrder() / timeout
-    CONFIRMED --> USED : validateOrder() [ROLE_security]
-    CONFIRMED --> FAILED : cancelOrder()
-    FAILED --> [*]
-    USED --> [*]
-```
-
----
-
 ## 4. Flujo funcional
 
 ### 4.1 Diagrama de secuencia — Compra de un ticket
 
-```mermaid
-sequenceDiagram
-    actor Cliente
-    participant KC as Keycloak
-    participant GW as API Gateway
-    participant OS as Orders Service
-    participant DB as MySQL
-    participant PS as GCP Pub/Sub
-
-    %% Autenticación
-    Cliente->>KC: POST /token (usuario + contraseña)
-    KC-->>Cliente: JWT (access_token)
-
-    %% Consulta de eventos disponibles
-    Cliente->>GW: GET /api/events\nAuthorization: Bearer <JWT>
-    GW->>KC: Validar firma JWT (JWKS)
-    KC-->>GW: JWT válido
-    GW->>OS: GET /api/events\nAuthorization: Bearer <GCP OIDC token>
-    OS->>DB: SELECT eventos disponibles
-    DB-->>OS: Lista de eventos
-    OS-->>GW: 200 OK — lista de eventos
-    GW-->>Cliente: 200 OK — lista de eventos
-
-    %% Creación de la orden (compra)
-    Cliente->>GW: POST /api/orders\nAuthorization: Bearer <JWT>\n{ eventId, quantity, buyerEmail, ... }
-    GW->>KC: Validar firma JWT
-    KC-->>GW: JWT válido
-    GW->>OS: POST /api/orders\nAuthorization: Bearer <GCP OIDC token>
-    OS->>DB: SELECT event WHERE id = eventId
-    DB-->>OS: Datos del evento
-    OS->>DB: INSERT INTO orders (status=PENDING_PAYMENT, qrCode=<uuid>)
-    DB-->>OS: Orden creada
-    OS->>PS: Publish { orderId } → orders-topic
-    PS-->>OS: messageId (ACK)
-    OS-->>GW: 201 Created — { id, qrCode, status: PENDING_PAYMENT, ... }
-    GW-->>Cliente: 201 Created — OrderResponse
-
-    %% Confirmación de pago (procesamiento asíncrono desde Pub/Sub)
-    Note over PS,OS: Suscriptor externo procesa el pago
-    PS->>OS: PATCH /internal/orders/{id}/status\n{ status: CONFIRMED }
-    OS->>DB: UPDATE orders SET status=CONFIRMED WHERE id=...
-    DB-->>OS: OK
-    OS-->>PS: 200 OK
-
-    %% Validación del ticket en el evento (personal de seguridad)
-    actor Seguridad
-    Seguridad->>GW: POST /api/orders/validate/{id}\nAuthorization: Bearer <JWT con ROLE_security>
-    GW->>KC: Validar JWT + verificar ROLE_security
-    KC-->>GW: JWT válido, rol confirmado
-    GW->>OS: POST /api/orders/validate/{id}\nAuthorization: Bearer <GCP OIDC token>
-    OS->>DB: SELECT order WHERE id=... AND status=CONFIRMED
-    DB-->>OS: Orden confirmada
-    OS->>DB: UPDATE orders SET status=USED
-    DB-->>OS: OK
-    OS-->>GW: 200 OK — { status: USED }
-    GW-->>Seguridad: 200 OK — Ticket validado
-```
+![Diagrama de Secuencia](docs/Diagrama%20de%20Secuencia.png)
 
 ---
 
